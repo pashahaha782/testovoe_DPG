@@ -25,9 +25,8 @@
   function load(f) {
     getJSON('/api/flats/' + f.id + '.json').then((data) => {
       detail = data;
-      getJSON('/api/flats.json').then((list) => {
-        similar = list.filter((x) => data.similar.indexOf(x.id) > -1);
-      });
+      const list = window.appState.flats || [];
+      similar = list.filter((x) => data.similar && data.similar.indexOf(x.id) > -1);
     });
   }
 

@@ -189,7 +189,16 @@
   let openingImg;
   let videoReady = false;
   let lastY = 0;
+  let scrollFrame = 0;
   let lightboxIndex = -1;
+
+  function queueScroll() {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      onScroll();
+    });
+  }
 
   function onScroll() {
     const y = window.scrollY;
@@ -200,8 +209,11 @@
     let p = (y - heroTop) / (heroHeight - vh);
     if (p < 0) p = 0;
     if (p > 1) p = 1;
-    if (heroVideo && heroVideo.duration) {
-      heroVideo.currentTime = p * heroVideo.duration;
+    if (p < 1 && heroVideo && heroVideo.duration) {
+      const next = p * heroVideo.duration;
+      if (Math.abs(heroVideo.currentTime - next) > 1 / 30) {
+        heroVideo.currentTime = next;
+      }
     }
     heroBg.style.top = y * 0.35 + 'px';
     heroCopy.style.opacity = Math.max(0, 1 - p * 3);
@@ -214,6 +226,7 @@
     }
     lastY = y;
     topBand.style.width = y > heroTop + heroHeight - topBar.offsetHeight ? '100%' : '0%';
+    if (p < 1) return;
 
     document.querySelectorAll('.section-title').forEach((title) => {
       const r = title.getBoundingClientRect();
@@ -292,10 +305,9 @@
 
   function onSearch(e) {
     query = e.target.value;
-    getJSON('/api/flats.json?q=' + query).then((list) => {
-      const q = query.trim().toUpperCase();
-      found = list.filter((f) => f.id.indexOf(q) > -1).map((f) => f.id);
-    });
+
+    const q = query.trim().toUpperCase();
+    found = flats.filter((f) => f.id.indexOf(q) > -1).map((f) => f.id);
   }
 
   function clearFilters() {
@@ -627,16 +639,13 @@
     });
 
     getJSON('/api/flats.json').then((list) => {
+      list.forEach((flat) => {
+        delete flat.preview;
+      });
       flats = list;
       flatsStore.set(list);
       window.appState.flats = list;
       tick().then(() => ScrollTrigger.refresh());
-      list.forEach((flat) => {
-        getJSON('/api/flats/' + flat.id + '.json').then((data) => {
-          Object.assign(flat, data);
-          flats = flats;
-        });
-      });
     });
 
     getJSON('/api/flats.json?v=2').then(preparePayments);
@@ -670,7 +679,7 @@
 
     document.fonts.ready.then(intro);
 
-    window.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', queueScroll, { passive: true });
     window.addEventListener('resize', onResize);
 
     try {

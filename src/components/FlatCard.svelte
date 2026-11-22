@@ -11,7 +11,7 @@
   const statuses = { reserved: 'Reserved', sold: 'Sold' };
 
   $: title = names[flat.rooms] + ', ' + flat.area + ' m², floor ' + flat.floor;
-  $: note = flat.description ? flat.description.split('. ')[0] : '';
+  $: note = flat.description ? flat.description.split('. ')[0] : flat.aspect || '';
   $: price = '£' + Number(flat.price).toLocaleString('en-GB');
   $: status = statuses[flat.status] || '';
 </script>
