@@ -13,7 +13,7 @@
   import { slide } from 'svelte/transition';
   import { getJSON, getJSONSync } from './lib/api.js';
   import { uiStore, flatsStore, favoritesStore } from './lib/store.js';
-  import { buildSchedule } from './lib/mortgage.js';
+  import { monthlyPayment } from './lib/mortgage.js';
   import { newsDate, monthTitle, pounds, perMonth, area } from './lib/format.js';
   import Lightbox from './components/Lightbox.svelte';
   import FlatList from './components/FlatList.svelte';
@@ -320,17 +320,13 @@
         terms.forEach((term) => {
           downPayments.forEach((down) => {
             const loan = flat.price - (flat.price * down) / 100;
-            const schedule = buildSchedule(loan, rate, term);
-            let total = 0;
-            schedule.forEach((row) => {
-              total += row.payment;
-            });
-            rows.push({ rate, term, down, monthly: schedule[0].payment, total, overpay: total - loan });
+            const monthly = monthlyPayment(loan, rate, term);
+            const total = monthly * term * 12;
+            rows.push({ rate, term, down, monthly, total, overpay: total - loan });
           });
         });
       });
       payments[flat.id] = rows;
-      console.log('payments', flat.id, rows);
     });
     window.appState.payments = payments;
   }
@@ -556,7 +552,7 @@
       const loan = flat.price - (flat.price * deposit) / 100;
       const payments = {};
       for (let t = minTerm; t <= maxTerm; t++) {
-        payments[t] = buildSchedule(loan, rate, t)[0].payment;
+        payments[t] = monthlyPayment(loan, rate, t);
       }
       return { ...flat, loan, payments, monthly: payments[term] };
     });
@@ -646,12 +642,15 @@
     getJSON('/api/flats.json?v=2').then(preparePayments);
 
     setInterval(() => {
+      if (document.hidden) return;
       getJSON('/api/prices.json').then((data) => {
         const map = {};
+        let changed = false;
         data.items.forEach((p) => {
           map[p.id] = p.price;
+          if (prices[p.id] !== p.price) changed = true;
         });
-        prices = map;
+        if (changed) prices = map;
       });
     }, window.appConfig.pricesPollInterval);
 
@@ -688,7 +687,7 @@
     } catch (e) {}
 
     setInterval(() => {
-      if (!gallerySwiper || lightboxIndex > -1) return;
+      if (document.hidden || !gallerySwiper || lightboxIndex > -1) return;
       if (galleryEl.getBoundingClientRect().top > window.innerHeight) return;
       if (gallerySwiper.isEnd) {
         gallerySwiper.slideTo(0);
