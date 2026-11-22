@@ -120,6 +120,14 @@
     { value: 'floor', label: 'Floor' },
   ];
 
+  const offerIds = ['QS-1209', 'CH-907', 'YD-708', 'TR-609'];
+  let offers = [];
+
+  function salePrice(price) {
+    return Math.round((price * 0.93) / 100) * 100;
+  }
+
+
   let flats = [];
   let prices = {};
   let found = [];
@@ -608,6 +616,10 @@
   }
 
   onMount(() => {
+    Promise.all(offerIds.map((id) => getJSON('/api/flats/' + id + '.json'))).then((list) => {
+      offers = list;
+    });
+
     getJSON('/api/sections.json').then((data) => {
       sections = data;
       heroBg.style.backgroundImage = 'url(' + window.appConfig.heroImage + ')';
@@ -903,6 +915,34 @@
           {/if}
         {/each}
       </div>
+    </div>
+  </section>
+
+  <section id="offers" class="offers wrap">
+    <div class="offers-head">
+      <h2 class="section-title offers-title">Special offers</h2>
+      <div class="offers-wrap">
+        <p class="offers-note">Four homes at 7% off the list price <br /> until 31 December.</p>
+      </div>
+    </div>
+    <div class="offers-grid">
+      {#each offers as flat (flat.id)}
+        <div class="offer">
+          <div class="offer-photo">
+            <img src={'/media/offers/offers-' + flat.id + '.jpg'} alt={flat.building} />
+          </div>
+          <div class="offer-info">
+            <p class="offer-place">{flat.building}, floor {flat.floor}</p>
+            <p class="offer-home">{flat.rooms} bedrooms, {flat.area} m²</p>
+            <p class="offer-aspect">{flat.aspect}, {flat.balcony}</p>
+            <p class="offer-prices">
+              <span class="offer-now">{pounds(salePrice(flat.price))}</span>
+              <span class="offer-was">{pounds(flat.price)}</span>
+            </p>
+            <a class="offer-book" href="#visit" on:click|preventDefault={openCallback}>Book a viewing</a>
+          </div>
+        </div>
+      {/each}
     </div>
   </section>
 
@@ -2769,5 +2809,171 @@
 
   :global(.cw-btn:hover) {
     background: var(--ink) !important;
+  }
+
+  .offers {
+    max-width: 100vw;
+    padding-top: 160px;
+    padding-bottom: 160px;
+  }
+
+  .offers-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 64px;
+  }
+
+  .offers-title {
+    font-size: 64px !important;
+  }
+
+  .offers-wrap {
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .offers-note {
+    font-size: 24px;
+    line-height: 1.35;
+  }
+
+  .offers-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .offer-photo {
+    margin-bottom: 20px;
+    overflow: hidden;
+    background: var(--surface);
+    aspect-ratio: 4 / 5;
+  }
+
+  .offer-photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .offer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .offer-place,
+  .offer-was,
+  .offer-aspect{
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .offer-home {
+    font-size: 24px;
+    line-height: 1.35;
+  }
+
+
+  .offer-prices {
+    display: flex;
+    margin-top: 14px !important;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .offer-now {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .offer-was {
+    text-decoration: line-through;
+  }
+
+  .offer-book {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 14px;
+    text-decoration: underline !important;
+    text-underline-offset: 0.2em;
+  }
+
+  @media (max-width: 1200px) {
+    .offers {
+      padding-top: 120px;
+      padding-bottom: 120px;
+    }
+
+    .offers-title {
+      font-size: 48px !important;
+    }
+
+    .offers-head {
+      display: block;
+      margin-bottom: 48px;
+    }
+
+    .offers-note {
+      max-width: 360px;
+      margin-top: 12px !important;
+      text-align: left;
+    }
+
+    .offers-grid {
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: 24px;
+      row-gap: 48px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .offers {
+      padding-top: 96px;
+      padding-bottom: 96px;
+    }
+
+    .offers.wrap {
+      padding-left: 16px;
+      padding-right: 0;
+    }
+
+    .offers-head {
+      padding-right: 16px;
+    }
+
+    .offers-title {
+      font-size: 34px !important;
+    }
+
+    .offers-note {
+      max-width: none;
+    }
+
+    .offers-grid {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-right: 16px;
+      scrollbar-width: none;
+    }
+
+    .offers-grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    .offer {
+      flex: none;
+      width: 280px;
+      scroll-snap-align: start;
+    }
+
+    .offer-home {
+      font-size: 20px;
+    }
   }
 </style>
